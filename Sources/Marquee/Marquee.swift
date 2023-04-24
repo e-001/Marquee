@@ -33,7 +33,8 @@ public struct Marquee<Content> : View where Content : View {
     @Environment(\.marqueeWhenNotFit) var stopWhenNotFit: Bool
     @Environment(\.marqueeIdleAlignment) var idleAlignment: HorizontalAlignment
     @Environment(\.marqueeBoundary) var boundary: MarqueeBoundary
-    
+    @Environment(\.marqueeLoopCount) var loopCount: Int
+
     private var content: () -> Content
     @State private var state: MarqueeState = .idle
     @State private var contentWidth: CGFloat = 0
@@ -154,7 +155,7 @@ public struct Marquee<Content> : View where Content : View {
             let animation = Animation
                 .linear(duration: duration)
                 .delay(delay)
-                .repeatForever(autoreverses: autoreverses)
+                .repeatCount(loopCount, autoreverses: autoreverses)
             withAnimation(animation) {
                 self.state = .animating
             }
@@ -174,7 +175,11 @@ struct Marquee_Previews: PreviewProvider {
             Text("Hello World!")
                 .fontWeight(.bold)
                 .font(.system(size: 40))
+        
+            Text("Hello World!")
+                .fontWeight(.bold)
+                .font(.system(size: 40))
         }
-        .marqueeDelay(0.5)
+        .marqueeLoopCount(1)
     }
 }

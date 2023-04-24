@@ -1,6 +1,6 @@
 //
 //  Utils.swift
-//  
+//
 //
 //  Created by CatchZeng on 2020/11/23.
 //
@@ -35,6 +35,10 @@ struct AlignmentKey: EnvironmentKey {
 
 struct BoundaryKey: EnvironmentKey {
     static var defaultValue: MarqueeBoundary = .outer
+}
+
+struct LoopCountKey: EnvironmentKey {
+    static var defaultValue: Int = .max
 }
 
 extension EnvironmentValues {
@@ -72,9 +76,18 @@ extension EnvironmentValues {
         get {self[BoundaryKey.self]}
         set {self[BoundaryKey.self] = newValue}
     }
+    
+    var marqueeLoopCount: Int {
+        get {self[LoopCountKey.self]}
+        set {self[LoopCountKey.self] = newValue}
+    }
 }
 
 public extension View {
+    func marqueeLoopCount(_ loopCount: Int) -> some View {
+        environment(\.marqueeLoopCount, loopCount)
+    }
+
     /// Sets the marquee animation duration to the given value.
     ///
     ///     Marquee {
@@ -204,7 +217,7 @@ extension View {
     func myOffset(x: CGFloat, y: CGFloat) -> some View {
         return modifier(_OffsetEffect(offset: CGSize(width: x, height: y)))
     }
-    
+
     func myOffset(_ offset: CGSize) -> some View {
         return modifier(_OffsetEffect(offset: offset))
     }
