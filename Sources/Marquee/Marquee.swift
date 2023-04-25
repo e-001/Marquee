@@ -26,10 +26,10 @@ public enum MarqueeState {
 }
 
 public class MarqueeViewModel: ObservableObject {
-    @Published var state: MarqueeState = .idle
-    @Published var contentWidth: CGFloat = 0
-    @Published var contentHeight: CGFloat = 0
-    @Published var isAppear = false
+    @Published public var state: MarqueeState = .idle
+    @Published public var contentWidth: CGFloat = 0
+    @Published public var contentHeight: CGFloat = 0
+    @Published public var isAppear = false
     
     public init() {}
 }
@@ -47,7 +47,7 @@ public struct Marquee<Content> : View where Content : View {
     private var content: () -> Content
     @ObservedObject private var viewModel: MarqueeViewModel
     
-    init(viewModel: MarqueeViewModel = .init(), @ViewBuilder content: @escaping () -> Content) {
+    public init(viewModel: MarqueeViewModel = .init(), @ViewBuilder content: @escaping () -> Content) {
         self.content = content
         self.viewModel = viewModel
     }
