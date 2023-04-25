@@ -38,6 +38,7 @@ public struct Marquee<Content> : View where Content : View {
     private var content: () -> Content
     @State private var state: MarqueeState = .idle
     @State private var contentWidth: CGFloat = 0
+    @State private var contentHeight: CGFloat = 0
     @State private var isAppear = false
     
     public init(@ViewBuilder content: @escaping () -> Content) {
@@ -52,11 +53,19 @@ public struct Marquee<Content> : View where Content : View {
                         .background(GeometryBackground())
                         .fixedSize()
                         .myOffset(x: offsetX(proxy: proxy), y: 0)
-                        .frame(maxHeight: .infinity)
                 } else {
                     Text("")
                 }
             }
+            .onPreferenceChange(HeightKey.self, perform: { value in
+                self.contentHeight = value
+                resetAnimation(
+                    duration: duration,
+                    delay: delay,
+                    autoreverses: autoreverses,
+                    proxy: proxy
+                )
+            })
             .onPreferenceChange(WidthKey.self, perform: { value in
                 self.contentWidth = value
                 resetAnimation(
@@ -110,7 +119,9 @@ public struct Marquee<Content> : View where Content : View {
                     proxy: proxy
                 )
             }
-        }.clipped()
+        }
+        .frame(height: contentHeight)
+        
     }
     
     private func offsetX(proxy: GeometryProxy) -> CGFloat {
@@ -172,14 +183,31 @@ public struct Marquee<Content> : View where Content : View {
 struct Marquee_Previews: PreviewProvider {
     static var previews: some View {
         Marquee {
-            Text("Hello World!")
-                .fontWeight(.bold)
-                .font(.system(size: 40))
-        
-            Text("Hello World!")
-                .fontWeight(.bold)
-                .font(.system(size: 40))
+            HStack {
+                Text("Hello World!")
+                    .fontWeight(.bold)
+                    .font(.system(size: 40))
+                    .padding()
+                
+                Text("Hello World!")
+                    .fontWeight(.regular)
+                    .font(.system(size: 40))
+            }
         }
-        .marqueeLoopCount(1)
+        .marqueeLoopCount(.max)
+        
+        Marquee {
+            VStack {
+                Text("Hello World!")
+                    .fontWeight(.bold)
+                    .font(.system(size: 40))
+                    .padding()
+                
+                Text("Hello World!")
+                    .fontWeight(.regular)
+                    .font(.system(size: 40))
+            }
+        }
+        .marqueeLoopCount(.max)
     }
 }
