@@ -19,10 +19,17 @@ public enum MarqueeBoundary {
     case outer
 }
 
-private enum MarqueeState {
+public enum MarqueeState {
     case idle
     case ready
     case animating
+}
+
+public class MarqueeViewModel: ObservableObject {
+    @Published var state: MarqueeState = .idle
+    @Published var contentWidth: CGFloat = 0
+    @Published var contentHeight: CGFloat = 0
+    @Published var isAppear = false
 }
 
 public struct Marquee<Content> : View where Content : View {
@@ -36,19 +43,17 @@ public struct Marquee<Content> : View where Content : View {
     @Environment(\.marqueeLoopCount) var loopCount: Int
 
     private var content: () -> Content
-    @State private var state: MarqueeState = .idle
-    @State private var contentWidth: CGFloat = 0
-    @State private var contentHeight: CGFloat = 0
-    @State private var isAppear = false
+    @ObservedObject private var viewModel: MarqueeViewModel
     
-    public init(@ViewBuilder content: @escaping () -> Content) {
+    init(viewModel: MarqueeViewModel = .init(), @ViewBuilder content: @escaping () -> Content) {
         self.content = content
+        self.viewModel = viewModel
     }
     
     public var body: some View {
         GeometryReader { proxy in
             VStack {
-                if isAppear {
+                if viewModel.isAppear {
                     content()
                         .background(GeometryBackground())
                         .fixedSize()
@@ -58,7 +63,7 @@ public struct Marquee<Content> : View where Content : View {
                 }
             }
             .onPreferenceChange(HeightKey.self, perform: { value in
-                self.contentHeight = value
+                self.viewModel.contentHeight = value
                 resetAnimation(
                     duration: duration,
                     delay: delay,
@@ -67,7 +72,7 @@ public struct Marquee<Content> : View where Content : View {
                 )
             })
             .onPreferenceChange(WidthKey.self, perform: { value in
-                self.contentWidth = value
+                self.viewModel.contentWidth = value
                 resetAnimation(
                     duration: duration,
                     delay: delay,
@@ -76,7 +81,7 @@ public struct Marquee<Content> : View where Content : View {
                 )
             })
             .onAppear {
-                self.isAppear = true
+                self.viewModel.isAppear = true
                 resetAnimation(
                     duration: duration,
                     delay: delay,
@@ -85,7 +90,7 @@ public struct Marquee<Content> : View where Content : View {
                 )
             }
             .onDisappear {
-                self.isAppear = false
+                self.viewModel.isAppear = false
             }
             .onChange(of: duration) { [] newDuration in
                 resetAnimation(
@@ -120,28 +125,32 @@ public struct Marquee<Content> : View where Content : View {
                 )
             }
         }
-        .frame(height: contentHeight)
-        
+        .frame(height: viewModel.contentHeight)
+        .onChange(of: viewModel.state) { newValue in
+            print("Marquee state changed to \(newValue)")
+        }
     }
     
     private func offsetX(proxy: GeometryProxy) -> CGFloat {
-        switch self.state {
+        switch self.viewModel.state {
         case .idle:
             switch idleAlignment {
             case .center:
-                return 0.5*(proxy.size.width-contentWidth)
+                return 0.5*(proxy.size.width-viewModel.contentWidth)
             case .trailing:
-                return proxy.size.width-contentWidth
+                return proxy.size.width-viewModel.contentWidth
+            case .leading:
+                return 0
             default:
                 return 0
             }
         case .ready:
             return (direction == .right2left)
                             ? boundary == .outer ? proxy.size.width : 0
-                            : -contentWidth
+                            : -viewModel.contentWidth
         case .animating:
             return (direction == .right2left)
-                            ? boundary == .outer ? -contentWidth : proxy.size.width - contentWidth
+                            ? boundary == .outer ? -viewModel.contentWidth : proxy.size.width - viewModel.contentWidth
                             : proxy.size.width
         }
     }
@@ -155,27 +164,31 @@ public struct Marquee<Content> : View where Content : View {
     }
     
     private func startAnimation(duration: Double, delay: Double, autoreverses: Bool, proxy: GeometryProxy) {
-        let isNotFit = contentWidth < proxy.size.width
+        let isNotFit = viewModel.contentWidth < proxy.size.width
         if stopWhenNotFit && isNotFit {
             stopAnimation()
             return
         }
         
         withAnimation(.instant) {
-            self.state = .ready
+            self.viewModel.state = .ready
             let animation = Animation
                 .linear(duration: duration)
                 .delay(delay)
                 .repeatCount(loopCount, autoreverses: autoreverses)
             withAnimation(animation) {
-                self.state = .animating
+                self.viewModel.state = .animating
+                // update animation state after loopcount * duration
+                DispatchQueue.main.asyncAfter(deadline: .now() + Double(loopCount) * duration) {
+                    self.viewModel.state = .idle
+                }
             }
         }
     }
     
     private func stopAnimation() {
         withAnimation(.instant) {
-            self.state = .idle
+            self.viewModel.state = .idle
         }
     }
 }
@@ -194,7 +207,8 @@ struct Marquee_Previews: PreviewProvider {
                     .font(.system(size: 40))
             }
         }
-        .marqueeLoopCount(.max)
+        .marqueeLoopCount(2)
+        .marqueeIdleAlignment(.trailing)
         
         Marquee {
             VStack {
