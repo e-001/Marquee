@@ -30,6 +30,8 @@ public class MarqueeViewModel: ObservableObject {
     @Published var contentWidth: CGFloat = 0
     @Published var contentHeight: CGFloat = 0
     @Published var isAppear = false
+    
+    public init() {}
 }
 
 public struct Marquee<Content> : View where Content : View {
